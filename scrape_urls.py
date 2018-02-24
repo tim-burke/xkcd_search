@@ -5,7 +5,7 @@ from comic_parser import * # Get the comic parsing function (written separately)
 
 # Start by creating a list of the urls to iterate over.
 urls = []
-with open('problem_urls.csv', 'r+') as file:
+with open('input.csv', 'r+') as file: # Any input csv with a list of URLs
     comic_csv = csv.reader(file)
     for row in comic_csv:
     	urls.append(row[1])

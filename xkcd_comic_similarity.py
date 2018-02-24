@@ -21,6 +21,13 @@ from nltk import word_tokenize # Tokenization tool
 ########################################################################################################################
 # Get the similarity score matrix between a query and comic texts 
 ########################################################################################################################
+def jaccard_similarity(str1,str2):
+		"""Takes Jaccard similarity of two strings (tokenized using NLTK word_tokenize)"""
+		str1 = set(word_tokenize(str1))
+		str2 = set(word_tokenize(str2))
+		return float(len(str1 & str2)) / float(len(str1 | str2)) 
+
+
 def get_similar(input_query,vectorizer_1, df ,vecs , similarity_type = 1):
 	"""
 	input_query: Takes a free text query (e.g. 'drones')
@@ -32,35 +39,39 @@ def get_similar(input_query,vectorizer_1, df ,vecs , similarity_type = 1):
 	This function takes a free-text query and prints the most similar three comics' titles and index numbers
 	"""
 	
+	results = ''	
 	query = [input_query]
 	query_vec = vectorizer_1.transform(query)
 
-	def jaccard_similarity(str1,str2):
-		str1 = set(word_tokenize(str1))
-		str2 = set(word_tokenize(str2))
-		return float(len(str1 & str2)) / float(len(str1 | str2)) 
-
-	# Take cosine similarity over each field of the 
-	title_sim = cosine_similarity(query_vec,vecs[0]).transpose()
-	rollover_sim = cosine_similarity(query_vec,vecs[1]).transpose()
-	category_sim = cosine_similarity(query_vec,vecs[2]).transpose()
-	explanation_sim = cosine_similarity(query_vec,vecs[3]).transpose()
-	transcript_sim = cosine_similarity(query_vec,vecs[4]).transpose()
-
-	jaccard_title = np.array([jaccard_similarity(query[0],string) for string in df['title']]).reshape((len(df['title']),1))
-	jaccard_rollover = np.array([jaccard_similarity(query[0],string) for string in df['title_text']]).reshape((len(df['title']),1))
-	jaccard_category = np.array([jaccard_similarity(query[0],string) for string in df['all_categories']]).reshape((len(df['title']),1))
-	jaccard_explanation = np.array([jaccard_similarity(query[0],string) for string in df['explanation']]).reshape((len(df['title']),1))
-	jaccard_transcript = np.array([jaccard_similarity(query[0],string) for string in df['transcript']]).reshape((len(df['title']),1))
-
-	score_matrix = np.column_stack((title_sim,rollover_sim,category_sim,explanation_sim,transcript_sim))
-	jaccard_matrix = np.column_stack((jaccard_title,jaccard_rollover,jaccard_category,jaccard_explanation,jaccard_transcript))
-
-	weights = np.array([5,3,6,1,3]) # Weights in order title, rollover, category, explanation, transcript
-	j_weights = np.array([1,1,1,1,1])
 	if similarity_type == 1:
+		# Take cosine similarity over each field of the comic text
+		title_sim = cosine_similarity(query_vec,vecs[0]).transpose()
+		rollover_sim = cosine_similarity(query_vec,vecs[1]).transpose()
+		category_sim = cosine_similarity(query_vec,vecs[2]).transpose()
+		explanation_sim = cosine_similarity(query_vec,vecs[3]).transpose()
+		transcript_sim = cosine_similarity(query_vec,vecs[4]).transpose()
+		
+		# Stack them into a matrix
+		score_matrix = np.column_stack((title_sim,rollover_sim,category_sim,explanation_sim,transcript_sim))
+
+		# Result is the similarity scores, multiplied by the weights for each text field. 
+		weights = np.array([5,3,6,1,3]) # Weights in order title, rollover, category, explanation, transcript
 		results = np.matmul(score_matrix,weights)
+
 	elif similarity_type == 2:
+		
+		# Take cosine similarity over each field of the comic text
+		jaccard_title = np.array([jaccard_similarity(query[0],string) for string in df['title']]).reshape((len(df['title']),1))
+		jaccard_rollover = np.array([jaccard_similarity(query[0],string) for string in df['title_text']]).reshape((len(df['title']),1))
+		jaccard_category = np.array([jaccard_similarity(query[0],string) for string in df['all_categories']]).reshape((len(df['title']),1))
+		jaccard_explanation = np.array([jaccard_similarity(query[0],string) for string in df['explanation']]).reshape((len(df['title']),1))
+		jaccard_transcript = np.array([jaccard_similarity(query[0],string) for string in df['transcript']]).reshape((len(df['title']),1))
+
+		# Stack them into a matrix
+		jaccard_matrix = np.column_stack((jaccard_title,jaccard_rollover,jaccard_category,jaccard_explanation,jaccard_transcript))
+
+		# Result is the similarity scores, multiplied by the weights for each text field. 
+		j_weights = np.array([1,1,1,1,1])
 		results = np.matmul(jaccard_matrix,j_weights)
 
 	count = 1
